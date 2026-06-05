@@ -159,17 +159,11 @@ python main.py "какая погода в Москве?"
 python main.py "создай пользователя с именем Alice и email alice@example.com"
 ```
 
-**Вызов Tool**:
-```
-[TOOL] create_user called with name='Alice', email='alice@example.com'
-[TOOL] create_user returning '{"id": 2, "name": "Alice", "email": "alice@example.com", "status": "active", "created_at": "2026-06-02T10:11:21.096834+00:00"}'
-```
-
 **Ответ агента** (формат контракта):
 ```
 Status: success
-Action: Создан новый пользователь Alice с email alice@example.com
-Data: {"id": 2, "name": "Alice", "email": "alice@example.com", "status": "active", "created_at": "2026-06-02T10:11:21.096834+00:00"}
+Action: Создал пользователя Alice
+Data: Пользователь Alice (id 2), email alice@example.com, статус active
 Errors: —
 ```
 
@@ -180,17 +174,11 @@ Errors: —
 python main.py "дай информацию о пользователе с id 2"
 ```
 
-**Вызов Tool**:
-```
-[TOOL] get_user called with user_id=2
-[TOOL] get_user returning '{"id": 2, "name": "Alice", "email": "alice@example.com", "status": "active", "created_at": "2026-06-02T10:11:21.096834+00:00"}'
-```
-
 **Ответ агента**:
 ```
 Status: success
-Action: Получена информация о пользователе с id 2
-Data: {"id": 2, "name": "Alice", "email": "alice@example.com", "status": "active", "created_at": "2026-06-02T10:11:21.096834+00:00"}
+Action: Получил информацию о пользователе с id 2
+Data: Пользователь Alice (id 2), email alice@example.com, статус active
 Errors: —
 ```
 
@@ -201,17 +189,11 @@ Errors: —
 python main.py "измени статус пользователя с id 2 на inactive"
 ```
 
-**Вызов Tool**:
-```
-[TOOL] update_user_status called with user_id=2, status='inactive'
-[TOOL] update_user_status returning '{"id": 2, "name": "Alice", "email": "alice@example.com", "status": "inactive", "created_at": "2026-06-02T10:11:21.096834+00:00"}'
-```
-
 **Ответ агента**:
 ```
 Status: success
-Action: Обновлен статус пользователя с id 2 на inactive
-Data: {"id": 2, "name": "Alice", "email": "alice@example.com", "status": "inactive", "created_at": "2026-06-02T10:11:21.096834+00:00"}
+Action: Обновил статус пользователя с id 2 на inactive
+Data: Пользователь Alice (id 2), email alice@example.com, статус inactive
 Errors: —
 ```
 
@@ -222,21 +204,11 @@ Errors: —
 python main.py "покажи всех пользователей со статистикой по статусам"
 ```
 
-**Вызов Tool**:
-```
-[TOOL] list_users called
-[TOOL] list_users returning '{"users": [{"id": 2, "name": "Alice", "email": "alice@example.com", "status": "inactive", ...}], "count": 1, "by_status": {"active": 0, "inactive": 1, "banned": 0}}'
-```
-
 **Ответ агента**:
 ```
 Status: success
-Action: Получен список всех пользователей с статистикой
-Data: {
-  "users": [{"id": 2, "name": "Alice", "email": "alice@example.com", "status": "inactive", "created_at": "2026-06-02T10:11:21.096834+00:00"}],
-  "count": 1,
-  "by_status": {"active": 0, "inactive": 1, "banned": 0}
-}
+Action: Получил список пользователей и посчитал их статусы
+Data: 1 пользователь: Alice (id 2, inactive); всего active 0, inactive 1, banned 0
 Errors: —
 ```
 
@@ -247,18 +219,27 @@ Errors: —
 python main.py "покажи информацию о пользователе с id 999"
 ```
 
-**Вызов Tool**:
+**Ответ агента**:
 ```
-[TOOL] get_user called with user_id=999
-[TOOL] get_user returning 'Ошибка 404: {"detail": "User with id 999 not found"}'
+Status: error
+Action: Попытка получить пользователя с id 999 не удалась
+Data: —
+Errors: Пользователь с id 999 не найден.
+```
+
+### Тест 6: Запрос вне темы
+
+**Запрос**:
+```bash
+python main.py "привет, как дела?"
 ```
 
 **Ответ агента**:
 ```
 Status: error
-Action: Попытка получить пользователя с id 999
+Action: Запрос не относится к управлению пользователями
 Data: —
-Errors: Пользователь с id 999 не найден (User with id 999 not found)
+Errors: Я могу только работать с пользователями: создать, получить, обновить статус или вывести список пользователей.
 ```
 
 ## Структура проекта
@@ -299,12 +280,9 @@ $ python main.py "создай пользователя Bob"
 Query: создай пользователя Bob
 
 --------------------------------------------------------------------------------
-[TOOL] create_user called with name='Bob', email=''
-[TOOL] create_user returning '{"id": 2, "name": "Bob", "status": "active", ...}'
-
 Status: success
-Action: Создан новый пользователь Bob
-Data: {"id": 2, "name": "Bob", "email": null, "status": "active", "created_at": "2026-06-02T..."}
+Action: Создал пользователя Bob
+Data: Пользователь Bob (id 2), email —, статус active
 Errors: —
 
 --------------------------------------------------------------------------------
