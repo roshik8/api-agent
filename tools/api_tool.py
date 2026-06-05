@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 from langchain_core.tools import tool
@@ -18,7 +18,7 @@ def _format_response(response: httpx.Response) -> str:
 
 
 @tool
-def create_user(name: str, email: str = "") -> str:
+def create_user(name: str, email: Optional[str] = None) -> str:
     """Create a new user by sending name and optional email to the user API."""
     print(f"[TOOL] create_user called with name={name!r}, email={email!r}")
     url = f"{API_BASE_URL}/users"
