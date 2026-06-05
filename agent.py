@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from dotenv import load_dotenv
 from typing import Any
 
@@ -46,6 +47,16 @@ Action: <brief description of what you did>
 Data: <result in natural, human-readable language — NO raw JSON>
 Errors: <error message in plain language, or — if none>
 
+Response consistency rules:
+- If a tool returns an error or a message like "API недоступен", use Status: error.
+- If Status: error, then Action must describe an attempted operation that failed, not a success.
+- If Status: error, do not use phrasing that implies success such as "Получил информацию", "Создал", "Обновил" or "Удалось".
+- If Status: error, prefer phrasing like "Попытка ... не удалась", "Не удалось ...", "Запрос ... завершился с ошибкой".
+- If Status: error, Data must be "—" and Errors must contain the tool error text.
+- If Status: success, Errors must be "—" and Data must contain the result.
+- Never invent ids, names, or success confirmations when the tool returned an error or no real data.
+- Base your final output only on what the tool really returned.
+
 Data must be a readable summary of the result. Do not output raw JSON in the Data field.
 If a tool returns structured user data, convert it into a sentence like:
 "Пользователь Alex (id 1), email alex@example.com, статус active."
@@ -63,8 +74,68 @@ Action: Получил список пользователей и посчита
 Data: 3 пользователя: Alex (id 1, active), Maria (id 2, inactive), Boris (id 3, banned); всего active 1, inactive 1, banned 1
 Errors: —
 
+Example of an error case:
+Запрос: «создай пользователя Anna»
+tool вернул «API недоступен: не удалось подключиться к серверу.»
+Правильный ответ:
+Status: error
+Action: Попытка создать пользователя Anna не удалась
+Data: —
+Errors: API недоступен: не удалось подключиться к серверу.
+
+Другой пример ошибки:
+Запрос: «получи информацию о пользователе с id 9999»
+tool вернул «Ошибка 404: {"detail": "User with id 9999 not found"}»
+Правильный ответ:
+Status: error
+Action: Попытка получить информацию о пользователе с id 9999 не удалась
+Data: —
+Errors: Пользователь с id 9999 не найден.
+
 Always use this format, no exceptions.
 """
+
+
+def validate_agent_response(response: str) -> None:
+    lines = [line.strip() for line in response.strip().splitlines() if line.strip()]
+    if len(lines) < 4:
+        raise ValueError(
+            f"Agent response must contain at least 4 non-empty lines, got {len(lines)}: {response!r}"
+        )
+
+    def parse_line(prefix: str, line: str) -> str:
+        if not line.startswith(prefix):
+            raise ValueError(f"Expected line starting with '{prefix}', got: {line!r}")
+        return line[len(prefix):].strip()
+
+    status = parse_line("Status:", lines[0]).lower()
+    if status not in {"success", "error"}:
+        raise ValueError(f"Status must be 'success' or 'error', got: {status!r}")
+
+    action = parse_line("Action:", lines[1])
+    data = parse_line("Data:", lines[2])
+    errors = parse_line("Errors:", lines[3])
+
+    if status == "error":
+        if data != "—":
+            raise ValueError("For error status, Data must be '—'.")
+        if errors == "—":
+            raise ValueError("For error status, Errors must not be '—'.")
+
+        bad_success_phrases = [
+            r"(?<!\bне\s)(создал|получил|обновил|удалил|успешно|выполнил|получено|создан|обновлен|добавил|отправил|удалось|завершился успешно)",
+        ]
+        lowered = action.lower()
+        for pattern in bad_success_phrases:
+            if re.search(pattern, lowered):
+                raise ValueError(
+                    f"Error response Action contains success phrasing: {action!r}."
+                )
+    else:
+        if errors != "—":
+            raise ValueError("For success status, Errors must be '—'.")
+        if data == "—":
+            raise ValueError("For success status, Data must not be '—'.")
 
 
 def run_agent(user_query: str) -> str:
@@ -102,7 +173,9 @@ def run_agent(user_query: str) -> str:
         if final_messages:
             last_msg = final_messages[-1]
             if hasattr(last_msg, "content"):
-                return last_msg.content
+                response = last_msg.content
+                validate_agent_response(response)
+                return response
     
     return "Error: No response from agent"
 
