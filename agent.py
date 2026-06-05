@@ -43,8 +43,25 @@ Your final response MUST follow this exact format:
 
 Status: success | error
 Action: <brief description of what you did>
-Data: <API result in JSON format, or — if no data>
-Errors: <error message if any, or — if none>
+Data: <result in natural, human-readable language — NO raw JSON>
+Errors: <error message in plain language, or — if none>
+
+Data must be a readable summary of the result. Do not output raw JSON in the Data field.
+If a tool returns structured user data, convert it into a sentence like:
+"Пользователь Alex (id 1), email alex@example.com, статус active."
+If the result is a list, summarize the items briefly and include counts/statistics in words.
+If there is no data to show, use "—" in Data.
+
+Examples:
+Status: success
+Action: Создал пользователя Alex
+Data: Пользователь Alex (id 1), email alex@example.com, статус active
+Errors: —
+
+Status: success
+Action: Получил список пользователей и посчитал их статусы
+Data: 3 пользователя: Alex (id 1, active), Maria (id 2, inactive), Boris (id 3, banned); всего active 1, inactive 1, banned 1
+Errors: —
 
 Always use this format, no exceptions.
 """
